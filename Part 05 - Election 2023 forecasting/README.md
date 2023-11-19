@@ -23,7 +23,7 @@ We can use the standard errors around the estimates to extrapolate worst case to
 
 Perform a grid search over the worst case to best case model scenarios and different amounts of voter turnout. The heatmap visualizes Schuchard's advantage over Brncic across a range of model estimates and turnout scenarios. Schuchard wins in 67% of these scenarios.
 
-![Grid search of model variation against turnout variation](model_grid_Search.png)
+![Grid search of model variation against turnout variation](model_grid_search.png)
 
 ### Model performance
 This table summarizes the performance of the model. The "Predicted" column is the model's estimated vote share for each candidate assuming 32,893 ballots. "Actual" is the observed vote share for each candidate in the November 16, 2023 report. "Difference" is the gap between the Predicted and Actual vote shares.

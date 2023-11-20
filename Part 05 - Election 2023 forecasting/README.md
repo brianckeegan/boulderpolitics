@@ -11,7 +11,7 @@ Some candidates' vote shares decrease as more ballots come in: ballots counted e
 
 ![Schuchard vs. Brncic vote share as a function of ballots](voteshare_schuchard_brncic.png)
 
-These patterns have a remarkably strong linear relationship: Schuchard's vote share increased as more ballots were counted while Brncic's vote share decreased as more ballots were counted. The grey lines capture the best-fit linear regression model estimates for this relationship. Extrapolating the model forward to the final number of ballots cast should give an estimate of the 
+These patterns have a remarkably strong linear relationship: Schuchard's vote share increased as more ballots were counted while Brncic's vote share decreased as more ballots were counted. The grey lines capture the best-fit linear regression model estimates for this relationship. Extrapolating the model forward to the final number of (mayoral) ballots cast should give an estimate of the candidates' vote shares.
 
 ### Close races
 The regression model estimates include standard errors on the slope and intercept parameters. Sampling from a normal distribution around these estimates can illustrate the probabilities of different vote share outcomes from the model. Schuchard beats Brncic 65% of the time across these model runs.

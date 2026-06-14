@@ -1,0 +1,49 @@
+name: Scrape Flock portal
+
+on:
+  schedule:
+    # Daily at 13:07 UTC (off the hour to avoid GitHub's busy scheduling windows).
+    - cron: "7 13 * * *"
+  workflow_dispatch: {}
+
+# Allow the job to commit the appended snapshot back to the repo.
+permissions:
+  contents: write
+
+# Never let two scrapes race on the same JSONL file.
+concurrency:
+  group: scrape-flock-portal
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: "Part 06 - Flock ALPR contract"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install curl_cffi
+
+      - name: Scrape portal and append snapshot
+        run: python append_portal_jsonl.py
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add portal_snapshots.jsonl
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Add Flock portal snapshot $(date -u +%Y-%m-%d)"
+            git push
+          fi

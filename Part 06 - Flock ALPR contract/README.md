@@ -20,6 +20,10 @@ All primary sources used in `ALPR.ipynb`, with canonical URLs. Retrieved June 20
   507,558 vehicle detections / 30 days; 6,836 hotlist hits / 30 days; 555 searches / 30 days;
   90 Colorado organizations granted access (full list hard-coded in the notebook with this date).
 - Portal is a **moving snapshot**; values are pinned to the retrieval date and not re-fetched at runtime.
+- **Daily time series:** `portal_snapshots.jsonl` is a growing log of the portal. A GitHub Action
+  (`.github/workflows/scrape-flock-portal.yml`) runs `append_portal_jsonl.py` once a day, which calls
+  `scrape_portal.scrape_flock_portal()` and appends one JSON line (all portal fields plus a `scraped_at`
+  UTC timestamp), then commits the result. Run it locally with `pip install curl_cffi && python append_portal_jsonl.py`.
 
 ## FOIA'd Network Audit (reported, NOT reproduced in this notebook)
 - **MuckRock request:** https://www.muckrock.com/foi/boulder-172/boulder-alpr-audits-187797/

@@ -40,7 +40,7 @@ _FIELDS = {
 
 
 def _fetch(url, timeout):
-    """Return (response, fingerprint) for the first impersonation that clears."""
+    """Return the response from the first impersonation that clears Cloudflare."""
     tried = []
     for i, imp in enumerate(_IMPERSONATE):
         if i:
@@ -52,7 +52,10 @@ def _fetch(url, timeout):
             tried.append(f"{imp}: {type(exc).__name__}")
             continue
         if r.status_code == 200 and "Just a moment" not in r.text:
-            return r, imp
+            # Note the winning fingerprint in the run log -- handy when a later
+            # run gets blocked and you need to know what last worked.
+            print(f"cleared Cloudflare as {imp}")
+            return r
         tried.append(f"{imp}: HTTP {r.status_code}")
 
     raise RuntimeError(
@@ -64,7 +67,7 @@ def _fetch(url, timeout):
 
 def scrape_flock_portal(url=PORTAL_URL, timeout=30):
     # Fetch with a real-browser TLS fingerprint to clear Cloudflare.
-    r, impersonated = _fetch(url, timeout)
+    r = _fetch(url, timeout)
 
     # Strip tags -> plain text, collapse whitespace (no BeautifulSoup needed).
     text = re.sub(r"<(script|style)\b[^>]*>.*?</\1>", " ", r.text, flags=re.I | re.S)
@@ -86,9 +89,6 @@ def scrape_flock_portal(url=PORTAL_URL, timeout=30):
         raise ValueError("portal layout changed; agency-sharing list not found")
     portal["orgs"] = orgs
     portal["org_count"] = len(orgs)
-    # Provenance: which fingerprint got through, so the next block is diagnosable
-    # from the snapshot log alone.
-    portal["impersonated"] = impersonated
     return portal
 
 

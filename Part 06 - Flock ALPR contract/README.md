@@ -24,6 +24,13 @@ All primary sources used in `ALPR.ipynb`, with canonical URLs. Retrieved June 20
   (`.github/workflows/scrape-flock-portal.yml`) runs `append_portal_jsonl.py` once a day, which calls
   `scrape_portal.scrape_flock_portal()` and appends one JSON line (all portal fields plus a `scraped_at`
   UTC timestamp), then commits the result. Run it locally with `pip install curl_cffi && python append_portal_jsonl.py`.
+- **Expect the Cloudflare bot check to break the scrape periodically.** Which TLS fingerprint it accepts
+  changes without notice — impersonating Chrome worked daily until 2026-07-25, when the whole Chrome
+  family started returning 403 while Firefox and Edge still passed. `scrape_portal.py` therefore rotates
+  over several fingerprints (`_IMPERSONATE`) spanning browser families and records the one that worked in
+  each snapshot's `impersonated` field. When every fingerprint fails, the Action goes red: run
+  `pip install -U curl_cffi` for fresher fingerprints and add a working target to `_IMPERSONATE`.
+  Note that lines written before 2026-07-25 have no `impersonated` field (all were scraped as Chrome).
 
 ## FOIA'd Network Audit (reported, NOT reproduced in this notebook)
 - **MuckRock request:** https://www.muckrock.com/foi/boulder-172/boulder-alpr-audits-187797/

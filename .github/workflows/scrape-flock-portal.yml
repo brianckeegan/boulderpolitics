@@ -30,8 +30,10 @@ jobs:
         with:
           python-version: "3.12"
 
+      # Deliberately unpinned: curl_cffi ships new browser fingerprints as
+      # Cloudflare tightens, so tracking latest is what keeps the scrape working.
       - name: Install dependencies
-        run: pip install curl_cffi
+        run: pip install --upgrade curl_cffi
 
       - name: Scrape portal and append snapshot
         run: python append_portal_jsonl.py

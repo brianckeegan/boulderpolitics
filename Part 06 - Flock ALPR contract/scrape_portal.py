@@ -3,16 +3,32 @@
 The portal server-renders its numbers into the page HTML, but sits behind a
 Cloudflare bot check that keys on the client's TLS fingerprint, so plain
 requests/curl get a 403 "Just a moment" challenge. curl_cffi impersonates a
-real Chrome TLS fingerprint and clears it -- no browser, Node, or Chromium
+real browser's TLS fingerprint and clears it -- no browser, Node, or Chromium
 needed, and it runs synchronously (safe inside a Jupyter cell).
+
+Which fingerprints Cloudflare accepts changes without notice: impersonating
+Chrome worked daily until 2026-07-25, when Cloudflare began 403ing the entire
+Chrome family (and the newest Safari builds) while Firefox and Edge still
+passed. So rotate across browser *families* rather than trusting any one of
+them, and space the attempts out -- firing them back-to-back gets the client
+throttled, which looks identical to a fingerprint rejection.
 
 Setup once:  pip install curl_cffi
 """
 import re
 import html
+import time
 from curl_cffi import requests as creq
 
 PORTAL_URL = "https://transparency.flocksafety.com/boulder-co-pd"
+
+# Ordered by what most recently cleared Cloudflare, but deliberately spanning
+# families: when one family is blocked the others have kept working. Versioned
+# targets missing from an older curl_cffi build are skipped, not fatal.
+_IMPERSONATE = ("firefox", "edge", "safari184", "chrome", "firefox133", "safari180")
+
+# Seconds to wait after a rejection before trying the next fingerprint.
+_RETRY_DELAY = 3.0
 
 _FIELDS = {
     "retention_days":   r"The number of days data is retained\.\s*([\d,]+)\s*days",
@@ -23,16 +39,32 @@ _FIELDS = {
 }
 
 
+def _fetch(url, timeout):
+    """Return (response, fingerprint) for the first impersonation that clears."""
+    tried = []
+    for i, imp in enumerate(_IMPERSONATE):
+        if i:
+            time.sleep(_RETRY_DELAY)
+        try:
+            r = creq.get(url, impersonate=imp, timeout=timeout)
+        except Exception as exc:
+            # Target not built into this curl_cffi, or a transport error.
+            tried.append(f"{imp}: {type(exc).__name__}")
+            continue
+        if r.status_code == 200 and "Just a moment" not in r.text:
+            return r, imp
+        tried.append(f"{imp}: HTTP {r.status_code}")
+
+    raise RuntimeError(
+        "Cloudflare not cleared by any fingerprint (" + "; ".join(tried) + "). "
+        "Flock likely tightened its bot check: run `pip install -U curl_cffi` for "
+        "fresher fingerprints, then add a working target to _IMPERSONATE."
+    )
+
+
 def scrape_flock_portal(url=PORTAL_URL, timeout=30):
     # Fetch with a real-browser TLS fingerprint to clear Cloudflare.
-    last = None
-    for imp in ("chrome", "chrome124", "safari"):
-        r = creq.get(url, impersonate=imp, timeout=timeout)
-        last = r.status_code
-        if r.status_code == 200 and "Just a moment" not in r.text:
-            break
-    else:
-        raise RuntimeError(f"Cloudflare not cleared (last status {last}); try updating curl_cffi.")
+    r, impersonated = _fetch(url, timeout)
 
     # Strip tags -> plain text, collapse whitespace (no BeautifulSoup needed).
     text = re.sub(r"<(script|style)\b[^>]*>.*?</\1>", " ", r.text, flags=re.I | re.S)
@@ -54,6 +86,9 @@ def scrape_flock_portal(url=PORTAL_URL, timeout=30):
         raise ValueError("portal layout changed; agency-sharing list not found")
     portal["orgs"] = orgs
     portal["org_count"] = len(orgs)
+    # Provenance: which fingerprint got through, so the next block is diagnosable
+    # from the snapshot log alone.
+    portal["impersonated"] = impersonated
     return portal
 
 

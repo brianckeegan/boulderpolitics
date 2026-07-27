@@ -30,6 +30,12 @@ All primary sources used in `ALPR.ipynb`, with canonical URLs. Retrieved June 20
   over several fingerprints (`_IMPERSONATE`) spanning browser families, and prints the one that cleared to
   the run log. When every fingerprint fails, the Action goes red: run `pip install -U curl_cffi` for
   fresher fingerprints and add a working target to `_IMPERSONATE`.
+- **A JavaScript challenge is a different, unfixable failure.** On 2026-07-27 Cloudflare put the whole
+  hostname behind a managed JS challenge — every response, even `/robots.txt`, came back 403 with
+  `cf-mitigated: challenge` and a "Performing security verification" body. No TLS fingerprint clears that,
+  and headless Chromium (both launch modes, run from a GitHub runner) could not either, so there is no
+  code change worth making: the scrape resumes by itself once the setting is relaxed. `scrape_portal.py`
+  detects this case and says so rather than suggesting the fingerprint remedy, which does not apply.
 
 ## FOIA'd Network Audit (reported, NOT reproduced in this notebook)
 - **MuckRock request:** https://www.muckrock.com/foi/boulder-172/boulder-alpr-audits-187797/

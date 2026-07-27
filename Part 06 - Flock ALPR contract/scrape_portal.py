@@ -42,6 +42,7 @@ _FIELDS = {
 def _fetch(url, timeout):
     """Return the response from the first impersonation that clears Cloudflare."""
     tried = []
+    challenged = False
     for i, imp in enumerate(_IMPERSONATE):
         if i:
             time.sleep(_RETRY_DELAY)
@@ -56,10 +57,27 @@ def _fetch(url, timeout):
             # run gets blocked and you need to know what last worked.
             print(f"cleared Cloudflare as {imp}")
             return r
+        if r.headers.get("cf-mitigated") == "challenge":
+            challenged = True
         tried.append(f"{imp}: HTTP {r.status_code}")
 
+    detail = "; ".join(tried)
+    if challenged:
+        # Cloudflare is running a JavaScript challenge, which is a different
+        # problem from a fingerprint being scored badly. Say so, because the
+        # fingerprint advice below is actively misleading here: on 2026-07-27
+        # every fingerprint AND headless Chromium (both launch modes, from a
+        # GitHub runner with clean egress) failed to get past it.
+        raise RuntimeError(
+            f"Cloudflare is serving a JavaScript challenge, not blocking a "
+            f"fingerprint ({detail}; all carried `cf-mitigated: challenge`). "
+            "It covers the whole hostname -- even /robots.txt gets it -- so "
+            "impersonation cannot clear it and upgrading curl_cffi will not "
+            "help. Nothing to fix here: the scrape resumes on its own if Flock "
+            "relaxes the setting."
+        )
     raise RuntimeError(
-        "Cloudflare not cleared by any fingerprint (" + "; ".join(tried) + "). "
+        f"Cloudflare not cleared by any fingerprint ({detail}). "
         "Flock likely tightened its bot check: run `pip install -U curl_cffi` for "
         "fresher fingerprints, then add a working target to _IMPERSONATE."
     )
